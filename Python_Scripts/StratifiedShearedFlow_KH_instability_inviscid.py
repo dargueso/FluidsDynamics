@@ -38,14 +38,14 @@ domain = de.Domain([x_basis,y_basis], grid_dtype=np.float64)
 #Equations
 
 
-problem = de.IVP(domain, variables = ['p','u','v','vy','prho'])
+problem = de.IVP(domain, variables = ['p','u','v','vy','rho'])
 
 problem.parameters['g'] = 9.81
 
 problem.add_equation("dt(u) + dx(p) = - u*dx(u) - v*dy(u)")
-problem.add_equation("dt(v) + dy(p) + g*prho = -u*dx(v) - v*vy")
+problem.add_equation("dt(v) + dy(p) + g*rho = -u*dx(v) - v*vy")
 problem.add_equation("dx(u) + vy = 0")
-problem.add_equation("dt(prho) = -u*dx(prho) - v*dy(prho)")
+problem.add_equation("dt(rho) = -u*dx(rho) - v*dy(rho)")
 problem.add_equation("vy - dy(v) = 0")
 
 # Boundary conditions
@@ -72,28 +72,28 @@ u = solver.state['u']
 v = solver.state['v']
 vy = solver.state['vy']
 p = solver.state['p']
-prho = solver.state['prho']
+rho = solver.state['rho']
 
 
 
-a = 0.05
+a = 0.02
 amp = -0.2
 sigma = 0.2
 flow = -0.5
 u['g'] = flow*np.tanh(y/a)
-prho['g'] = -0.1*np.tanh(y/a)
+rho['g'] = -0.1*np.tanh(y/a)
 v['g'] = amp*np.exp(-y**2/sigma**2)*np.sin(2*np.pi*x/Lx)
 
 solver.stop_sim_time = 10.01
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 
-initial_dt = 0.1*Lx/nx
+initial_dt = 0.05*Lx/nx
 cfl = flow_tools.CFL(solver,initial_dt,safety=0.5,threshold=0.05)
 cfl.add_velocities(('u','v'))
 
 analysis = solver.evaluator.add_file_handler('analysis_tasks', sim_dt=0.1, max_writes=50)
-analysis.add_task('prho')
+analysis.add_task('rho')
 analysis.add_task('u')
 analysis.add_task('0.5*(u**2+v**2)',name='KE',scales=(3/2,3/2))
 solver.evaluator.vars['Lx'] = Lx
@@ -103,8 +103,11 @@ x = domain.grid(0,scales=domain.dealias)
 y = domain.grid(1,scales=domain.dealias)
 xm, ym = np.meshgrid(x,y)
 fig, axis = plt.subplots(figsize=(8,5))
-prho.set_scales(domain.dealias)
-p = axis.pcolormesh(xm, ym, prho['g'].T, cmap='RdBu');
+rho.set_scales(domain.dealias)
+u.set_scales(domain.dealias)
+v.set_scales(domain.dealias)
+p = axis.pcolormesh(xm, ym, rho['g'].T, cmap='RdBu')
+q = axis.quiver(xm[::10,::10],ym[::10,::10], u['g'][::10,::10].T, v['g'][::10,::10].T)
 axis.set_title('t = %f' %solver.sim_time)
 axis.set_xlim([0,2.])
 axis.set_ylim([-0.5,0.5])
@@ -117,7 +120,8 @@ while solver.ok:
     solver.step(dt)
     if solver.iteration % 10 == 0:
         # Update plot of scalar field
-        p.set_array(prho['g'].T)
+        p.set_array(rho['g'].T)
+        q.set_UVC(u['g'][::10,::10].T, v['g'][::10,::10].T)
         axis.set_title('t = %f' %solver.sim_time)
         fig.canvas.draw()
         plt.savefig(f'./KH_instability_dedalus_v2_{nt:03d}.png')
