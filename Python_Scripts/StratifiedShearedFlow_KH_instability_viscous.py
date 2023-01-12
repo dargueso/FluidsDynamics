@@ -36,10 +36,7 @@ y_basis = de.Chebyshev('y', ny, interval=(-Ly/2, Ly/2), dealias=3/2)
 domain = de.Domain([x_basis,y_basis], grid_dtype=np.float64)
 
 
-Reynolds = 2e4
-
-
-
+Reynolds = 8e3
 
 
 #Equations
@@ -61,8 +58,8 @@ problem.add_equation("uy - dy(u) = 0")
 # Boundary conditions
 
 
-problem.add_bc("left(u) = -0.5")
-problem.add_bc("right(u) = 0.5")
+problem.add_bc("left(u) = 1.0")
+problem.add_bc("right(u) = -1.0")
 problem.add_bc("left(v) = 0")
 problem.add_bc("right(v) = 0", condition="(nx != 0)")
 problem.add_bc("integ(p,'y') = 0", condition="(nx == 0)")
@@ -86,13 +83,13 @@ rho = solver.state['rho']
 
 
 
-a = 0.05
-amp = -0.5
+a = 0.02
+amp = -0.2
 sigma = 0.2
-flow = -0.5
+flow = -1.0
 u['g'] = flow*np.tanh(y/a)
 rho['g'] = -0.1*np.tanh(y/a)
-v['g'] = amp*np.exp(-y**2/sigma**2)*np.sin(2*np.pi*x/Lx)
+v['g'] = amp*np.exp(-y**2/sigma**2)*np.sin(4*np.pi*x/Lx)
 
 solver.stop_sim_time = 10.01
 solver.stop_wall_time = np.inf
@@ -114,7 +111,10 @@ y = domain.grid(1,scales=domain.dealias)
 xm, ym = np.meshgrid(x,y)
 fig, axis = plt.subplots(figsize=(8,5))
 rho.set_scales(domain.dealias)
-p = axis.pcolormesh(xm, ym, rho['g'].T, cmap='RdBu');
+u.set_scales(domain.dealias)
+v.set_scales(domain.dealias)
+p = axis.pcolormesh(xm, ym, rho['g'].T, cmap='RdBu')
+q = axis.quiver(xm[::10,::10],ym[::10,::10], u['g'][::10,::10].T, v['g'][::10,::10].T)
 axis.set_title('t = %f' %solver.sim_time)
 axis.set_xlim([0,2.])
 axis.set_ylim([-0.5,0.5])
@@ -128,10 +128,14 @@ while solver.ok:
     if solver.iteration % 10 == 0:
         # Update plot of scalar field
         p.set_array(rho['g'].T)
+        q.set_UVC(u['g'][::10,::10].T, v['g'][::10,::10].T)
         axis.set_title('t = %f' %solver.sim_time)
         fig.canvas.draw()
         plt.savefig(f'./KH_instability_dedalus_v2_{nt:03d}_stratified_viscous.png')
         nt+=1
+
+
+
 
 end_time = time.time()
 
