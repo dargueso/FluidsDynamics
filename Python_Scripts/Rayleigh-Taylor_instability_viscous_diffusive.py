@@ -7,7 +7,7 @@
 @Contact :  d.argueso@uib.es
 @License :  (C)Copyright 2022, Daniel Argüeso
 @Project :  Master FAMA - Waves and Instability in Geophysical Fluids
-@Desc    :  Script to simulate the Kelvin-Helmholtz instability in a stratified sheared flow using dedalus
+@Desc    :  Script to simulate the Rayleigh-Taylor instability in a viscous and diffusive fluid dedalus
 '''
 
 import numpy as np
