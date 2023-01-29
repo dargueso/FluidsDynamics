@@ -61,8 +61,8 @@ problem.add_equation("rhoy - dy(rho) = 0")
 # Boundary conditions
 
 
-problem.add_bc("left(u) = 0.0")
-problem.add_bc("right(u) = 0.0")
+problem.add_bc("left(u) = 0")
+problem.add_bc("right(u) = 0")
 problem.add_bc("left(v) = 0")
 problem.add_bc("right(v) = 0", condition="(nx != 0)")
 problem.add_bc("integ(p,'y') = 0", condition="(nx == 0)")
