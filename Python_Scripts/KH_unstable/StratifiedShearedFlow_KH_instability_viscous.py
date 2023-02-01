@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 # Aspect ratio 2
 Lx, Ly = (2., 1.)
-nx, ny = (1024, 512)
+nx, ny = (512, 256)
 
 # Create bases and domain
 
@@ -65,7 +65,7 @@ y_basis = de.Chebyshev('y', ny, interval=(-Ly/2, Ly/2), dealias=3/2)
 domain = de.Domain([x_basis,y_basis], grid_dtype=np.float64)
 
 
-Reynolds = 8e3
+Reynolds = 2e4
 
 
 #Equations
