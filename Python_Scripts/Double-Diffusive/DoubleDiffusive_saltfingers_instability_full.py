@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # Aspect ratio 2
 Lx, Ly = (1.0, 2.0)
-nx, ny = (256, 512)
+nx, ny = (512, 1024)
 
 # Create bases and domain
 
@@ -111,8 +111,8 @@ noise2 = rand.standard_normal(gshape)[slices]
 a = 0.02
 u["g"] = 0
 v["g"] = 0
-T["g"] = (0.4 * np.tanh(y / a) + 0.5) + noise*1e-3
-S["g"] = 0.5 * np.tanh(y / a) + 0.5
+T["g"] = (0.4 * np.tanh(4*y / a) + 0.5) + noise*1e-3
+S["g"] = 0.5 * np.tanh(4*y / a) + 0.5
 
 
 initial_dt = 0.05 * Lx / nx
@@ -129,19 +129,19 @@ S.set_scales(domain.dealias)
 u.set_scales(domain.dealias)
 v.set_scales(domain.dealias)
 
-fig, axis = plt.subplots(1, 4, figsize=(40, 10))
+fig, axis = plt.subplots(1, 2, figsize=(20, 10))
 
-(line1,) = axis[0].plot(T["g"][128, :], np.arange(len(T["g"][128, :])), "r")
-(line2,) = axis[0].plot(S["g"][128, :], np.arange(len(S["g"][128, :])), "b")
+# (line1,) = axis[0].plot(T["g"][128, :], np.arange(len(T["g"][128, :])), "r")
+# (line2,) = axis[0].plot(S["g"][128, :], np.arange(len(S["g"][128, :])), "b")
 
-p1 = axis[1].pcolormesh(xm, ym, v["g"].T, cmap="PuOr")
-axis[1].set_title(f"Vertical velocity (t = {solver.sim_time:2.2f})")
+# p1 = axis[1].pcolormesh(xm, ym, v["g"].T, cmap="PuOr")
+# axis[1].set_title(f"Vertical velocity (t = {solver.sim_time:2.2f})")
 
-p2 = axis[2].pcolormesh(xm, ym, T["g"].T, cmap="RdYlBu_r")
-axis[2].set_title(f"Temperature (t = {solver.sim_time:2.2f})")
+p2 = axis[0].pcolormesh(xm, ym, T["g"].T, cmap="RdYlBu_r")
+axis[0].set_title(f"Temperature")# (t = {solver.sim_time:2.2f})")
 
-p3 = axis[3].pcolormesh(xm, ym, S["g"].T, cmap="bwr_r")
-axis[3].set_title(f"Salinity (t = {solver.sim_time:2.2f})")
+p3 = axis[1].pcolormesh(xm, ym, S["g"].T, cmap="Reds")
+axis[1].set_title(f"Salinity")# (t = {solver.sim_time:2.2f})")
 
 
 
@@ -157,16 +157,18 @@ while solver.ok:
 
     if solver.iteration % 10 == 0:
         # Update plot of scalar field
-        p1.set_array(np.ravel(v["g"].T))
+        # p1.set_array(np.ravel(v["g"].T))
         p2.set_array(np.ravel(T["g"].T))
         p3.set_array(np.ravel(S["g"].T))
-        line1.set_xdata(T["g"][128, :])
-        line2.set_xdata(S["g"][128, :])
+        # line1.set_xdata(T["g"][128, :])
+        # line2.set_xdata(S["g"][128, :])
 
-        axis[0].set_title(f"Temperature and salinity profiles")
-        axis[1].set_title(f"Vert veloc. (t = {solver.sim_time:2.2f})")
-        axis[2].set_title(f"Temperature  (t = {solver.sim_time:2.2f})")
-        axis[3].set_title(f"Salinity (t = {solver.sim_time:2.2f})")
+        # axis[0].set_title(f"Temperature and salinity profiles")
+        # axis[1].set_title(f"Vert veloc. (t = {solver.sim_time:2.2f})")
+        # axis[0].set_title(f"Temperature  (t = {solver.sim_time:2.2f})")
+        # axis[1].set_title(f"Salinity (t = {solver.sim_time:2.2f})")
+        axis[0].set_title(f"Temperature")
+        axis[1].set_title(f"Salinity")
 
         fig.canvas.draw()
         fig.savefig(f"./Double-diffusive_{nt:03d}.png")
