@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 # Set problem domain
 
 # Aspect ratio 2
-Lx, Ly = (1.0, 1.0)
-nx, ny = (512, 512)
+Lx, Ly = (16.0, 1.0)
+nx, ny = (512, 256)
 
 # Create bases and domain
 
@@ -37,13 +37,13 @@ y_basis = de.Chebyshev("y", ny, interval=(-Ly / 2, Ly / 2), dealias=3 / 2)
 domain = de.Domain([x_basis, y_basis], grid_dtype=np.float64)
 
 
-Reynolds = 1200
-Schmidt = 9
+Reynolds = 30
+Schmidt = 256
 
 flow = 10
 dens = 0.6
-h = 0.25
-delta = 0.005
+h = 0.27
+delta = 0.03
 # R = h / delta  # R = 9 Thickness ratio R = h/delta
 
 Jbulk = 0.15
@@ -51,7 +51,6 @@ g = 9.81
 
 print(dens * g * h / (flow**2))
 # Equations
-
 
 problem = de.IVP(domain, variables=["p", "u", "uy", "v", "vy", "rho", "rhoy"])
 
@@ -129,7 +128,7 @@ v_rand = (
 
 u["g"] = flow / 2 * np.tanh(2 * y / h) + u_pert + u_rand
 rho["g"] = -dens / 2 * np.tanh(2 * y / delta) + rho_rand
-v["g"] = v_rand
+v["g"] = 0.02 * np.exp(-(y**2) / 0.2**2) * np.sin(16 * np.pi * x / Lx) + v_rand
 
 solver.stop_sim_time = 10.01
 solver.stop_wall_time = np.inf
@@ -139,10 +138,6 @@ initial_dt = 0.005 * Lx / nx
 cfl = flow_tools.CFL(solver, initial_dt, safety=0.5, threshold=0.05)
 cfl.add_velocities(("u", "v"))
 
-analysis = solver.evaluator.add_file_handler(
-    "analysis_tasks", sim_dt=0.1, max_writes=50
-)
-analysis.add_task("rho")
 
 # Make plot of scalar field
 x = domain.grid(0, scales=domain.dealias)
@@ -152,8 +147,8 @@ fig, axis = plt.subplots(figsize=(8, 5))
 rho.set_scales(domain.dealias)
 p = axis.pcolormesh(xm, ym, rho["g"].T, cmap="RdBu")
 axis.set_title("Density")
-axis.set_xlim([0, 1.0])
-axis.set_ylim([-0.5, 0.5])
+axis.set_xlim([0, Lx])
+axis.set_ylim([-Ly / 2, Ly / 2])
 
 logger.info("Starting loop")
 start_time = time.time()
