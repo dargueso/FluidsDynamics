@@ -36,25 +36,33 @@ y_basis = de.Chebyshev('y', ny, interval=(-Ly/2, Ly/2), dealias=3/2)
 domain = de.Domain([x_basis,y_basis], grid_dtype=np.float64)
 
 
-Reynolds = 1200
-Prandtl = 9
+Reynolds = 1.2e8
+Schmidt = 9
+R = 9 #Thickness ratio R = h/delta
+flow = -5.0
+dens = 1.0
+h = 1.8
+delta = 0.2
+R = h/delta #R = 9 Thickness ratio R = h/delta
 
 
 #Equations
 
 
-problem = de.IVP(domain, variables = ['p','u','uy','v','vy','rho'])
+problem = de.IVP(domain, variables = ['p','u','uy','v','vy','rho','rhoy'])
 
 problem.parameters['Re'] = Reynolds
-
+problem.parameters['Sc'] = Schmidt
 problem.parameters['g'] = 9.81
 
-problem.add_equation("dt(u) + dx(p) - 1/Re*(dx(dx(u)) + dy(uy)) = - u*dx(u) - v*dy(u)")
-problem.add_equation("dt(v) + dy(p) - 1/Re*(dx(dx(v)) + dy(vy)) + g*rho = -u*dx(v) - v*vy")
 problem.add_equation("dx(u) + vy = 0")
-problem.add_equation("dt(rho) = -u*dx(rho) - v*dy(rho)")
+problem.add_equation("dt(u) + dx(p) - 1/Re*(dx(dx(u)) + dy(uy)) = - u*dx(u) - v*dy(u)")
+problem.add_equation("dt(v) + dy(p) - 1/Re*(dx(dx(v)) + dy(vy)) + J*rho = -u*dx(v) - v*vy")
+problem.add_equation("dx(u) + vy = 0")
+problem.add_equation("dt(rho) - 1/(Re*Sc)*(dx(dx(rho)) + dy(rhoy)) = -u*dx(rho) - v*rhoy")
 problem.add_equation("vy - dy(v) = 0")
 problem.add_equation("uy - dy(u) = 0")
+problem.add_equation("rhoy - dy(rho) = 0")
 
 # Boundary conditions
 
@@ -84,13 +92,15 @@ rho = solver.state['rho']
 
 
 
-a = 0.02
-amp = -0.1
-sigma = 0.2
-flow = -10.0
-u['g'] = flow*np.tanh(2*y/a)
-rho['g'] = -1.0*np.tanh(5*(y+0.1)/a)
-v['g'] = amp*np.exp(-y**2/sigma**2)*np.sin(8*np.pi*x/Lx)
+
+
+u['g'] = flow*np.tanh(2*y/h)
+rho['g'] = -dens*np.tanh(2*y/delta)
+
+# a = 0.02
+# amp = -0.2
+# sigma = 0.2
+# v['g'] = amp*np.exp(-y**2/sigma**2)*np.sin(2*np.pi*x/Lx)
 
 solver.stop_sim_time = 10.01
 solver.stop_wall_time = np.inf
