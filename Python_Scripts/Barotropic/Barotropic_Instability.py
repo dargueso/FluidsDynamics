@@ -142,9 +142,9 @@ if run_model:
     CFL.add_velocities(("u", "v"))
 
     analysis = solver.evaluator.add_file_handler("analysis", iter=50, max_writes=1000)
-    analysis.add_task("-L(psi)", layout="g", name="zeta")
-    analysis.add_task("dy(psi)", layout="g", name="u")
-    analysis.add_task("-dx(psi)", layout="g", name="v")
+    analysis.add_task("L(psi)", layout="g", name="zeta")
+    analysis.add_task("-dy(psi)", layout="g", name="u")
+    analysis.add_task("dx(psi)", layout="g", name="v")
 
     # I don't really know what this is showing. But it makes somethign that looks abotu right.
     plt.ion()
