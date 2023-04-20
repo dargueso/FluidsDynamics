@@ -14,7 +14,6 @@ import numpy as np
 from dedalus import public as de
 from dedalus.extras import flow_tools
 import matplotlib.pyplot as plt
-import h5py
 import time
 
 import logging
@@ -37,13 +36,13 @@ y_basis = de.Chebyshev("y", ny, interval=(-Ly / 2, Ly / 2), dealias=3 / 2)
 domain = de.Domain([x_basis, y_basis], grid_dtype=np.float64)
 
 
-Reynolds = 30
-Schmidt = 256
+Reynolds = 300
+Schmidt = 81
 
-flow = 10
-dens = 0.6
-h = 0.27
-delta = 0.03
+flow = 1
+dens = 1
+h = 0.09
+delta = 0.01
 # R = h / delta  # R = 9 Thickness ratio R = h/delta
 
 Jbulk = 0.15
@@ -128,9 +127,9 @@ v_rand = (
 
 u["g"] = flow / 2 * np.tanh(2 * y / h) + u_pert + u_rand
 rho["g"] = -dens / 2 * np.tanh(2 * y / delta) + rho_rand
-v["g"] = 0.02 * np.exp(-(y**2) / 0.2**2) * np.sin(16 * np.pi * x / Lx) + v_rand
+v["g"] = 0.005 * np.exp(-(y**2) / 0.2**2) * np.sin(16 * np.pi * x / Lx) + v_rand
 
-solver.stop_sim_time = 10.01
+solver.stop_sim_time = 1000.01
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 
