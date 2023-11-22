@@ -39,7 +39,7 @@ from dedalus import public as de
 from dedalus.extras import flow_tools
 
 
-run_model = False
+run_model = True
 
 if run_model:
     root = logging.root
