@@ -21,3 +21,17 @@ conda activate dedalus2
 
 Instead of making plots on the fly, we can generate analyses and then open them with a python script. 
 There is an example in Rayleigh-Taylor [open_analysis_and_plot.py](./Jupyter_notebooks/Rayleigh-Taylor/open_analysis_and_plot.py)
+
+
+# Dependencies
+
+These are the required modules and how to import them
+
+```
+import numpy as np
+from dedalus import public as de
+from dedalus.extras import flow_tools
+import matplotlib.pyplot as plt
+import h5py
+import time
+```
