@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 # Aspect ratio 2
 Lx, Ly = (2., 1.)
-nx, ny = (512, 256)
+nx, ny = (1024, 512)
 
 # Create bases and domain
 
@@ -65,7 +65,7 @@ y_basis = de.Chebyshev('y', ny, interval=(-Ly/2, Ly/2), dealias=3/2)
 domain = de.Domain([x_basis,y_basis], grid_dtype=np.float64)
 
 
-Reynolds = 2e4
+Reynolds = 3e5
 
 
 #Equations
@@ -105,7 +105,7 @@ solver =  problem.build_solver(ts)
 x = domain.grid(0)
 y = domain.grid(1)
 u = solver.state['u']
-uy = solver.state['uy']
+u = solver.state['uy']
 v = solver.state['v']
 vy = solver.state['vy']
 p = solver.state['p']
@@ -125,7 +125,7 @@ solver.stop_sim_time = 10.01
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 
-initial_dt = 0.1*Lx/nx
+initial_dt = 0.005*Lx/nx
 cfl = flow_tools.CFL(solver,initial_dt,safety=0.5,threshold=0.05)
 cfl.add_velocities(('u','v'))
 
