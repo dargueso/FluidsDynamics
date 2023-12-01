@@ -20,7 +20,6 @@ if run_model:
 
     # Aspect ratio 2
     Lx, Ly = (2.0, 1.0)
-    nx, ny = (1024, 512)
 
     # Create bases and domain
 
@@ -30,7 +29,7 @@ if run_model:
 
     # Equations
 
-    problem = de.IVP(domain, variables=['p','u','v','vy','rho'])
+    problem = de.IVP(domain, variables=["p", "u", "v", "vy", "rho"])
 
     problem.parameters["g"] = 9.81
     problem.parameters["rho0"] = 1
@@ -40,13 +39,12 @@ if run_model:
     problem.add_equation("dx(u) + vy = 0")
     problem.add_equation("dt(rho) = -u*dx(rho) - v*dy(rho)")
     problem.add_equation("vy - dy(v) = 0")
-   
+
     # Boundary conditions
 
     problem.add_bc("left(v) = 0")
     problem.add_bc("right(v) = 0", condition="(nx != 0)")
     problem.add_bc("integ(p,'y') = 0", condition="(nx == 0)")
-
 
     # Timestepping
 
@@ -69,10 +67,9 @@ if run_model:
     sigma = 0.2
     flow = -0.5
     N = 2
-    u["g"] = flow * np.tanh( y / a)
-    rho["g"] = -0.1 * np.tanh( y / a)
+    u["g"] = flow * np.tanh(y / a)
+    rho["g"] = -0.1 * np.tanh(y / a)
     v["g"] = amp * np.exp(-(y**2) / sigma**2) * np.sin(N * np.pi * x / Lx)
-    
 
     solver.stop_sim_time = 10.01
     solver.stop_wall_time = np.inf
@@ -92,7 +89,9 @@ if run_model:
     cfl = flow_tools.CFL(solver, initial_dt, safety=0.08, threshold=0.05)
     cfl.add_velocities(("u", "v"))
 
-    analysis = solver.evaluator.add_file_handler("analysis", sim_dt=0.1, max_writes=10000)
+    analysis = solver.evaluator.add_file_handler(
+        "analysis", sim_dt=0.1, max_writes=10000
+    )
     analysis.add_task("rho")
     analysis.add_task("u")
     analysis.add_task("v")
