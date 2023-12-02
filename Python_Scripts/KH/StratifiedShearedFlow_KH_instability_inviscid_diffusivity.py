@@ -30,18 +30,21 @@ if run_model:
 
     # Equations
 
-    problem = de.IVP(domain, variables=["p", "u", "v", "vy", "rho"])
+    problem = de.IVP(domain, variables=["p", "u", "uy", "v", "vy", "rho"])
 
     problem.parameters["g"] = 9.81
+    problem.parameters['Re'] = 2e4
 
-    problem.add_equation("dt(u) + dx(p)  = - u*dx(u) - v*dy(u)")
-    problem.add_equation("dt(v) + dy(p) + g*rho  = - u*dx(v) - v*vy")
+    problem.add_equation("dt(u) + dx(p) - 1/Re*(dx(dx(u)) + dy(uy)) = - u*dx(u) - v*dy(u)")
+    problem.add_equation("dt(v) + dy(p) - 1/Re*(dx(dx(v)) + dy(vy)) + g*rho = -u*dx(v) - v*vy")
     problem.add_equation("dx(u) + vy = 0")
-    problem.add_equation("dt(rho) = -u*dx(rho) - v*dy(rho)")
-    problem.add_equation("vy - dy(v) = 0")
+    problem.add_equation("dt(rho) = -u*dx(rho) - v*dy(rho)")    
+    problem.add_equation("vy - dy(v) = 0") 
+    problem.add_equation("uy - dy(u) = 0")
 
     # Boundary conditions
-
+    problem.add_bc("left(u) = 1.0")
+    problem.add_bc("right(u) = -1.0")
     problem.add_bc("left(v) = 0")
     problem.add_bc("right(v) = 0", condition="(nx != 0)")
     problem.add_bc("integ(p,'y') = 0", condition="(nx == 0)")
@@ -117,7 +120,7 @@ if run_model:
             p.set_array(rho["g"].T)
             axis.set_title("t = %f" % solver.sim_time)
             fig.canvas.draw()
-            plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_{nt:03d}.png")
+            plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_diffusivity_{nt:03d}.png")
             nt += 1
 
 
@@ -145,5 +148,5 @@ if run_model:
 #         axis.set_xlim([0, 2.0])
 #         axis.set_ylim([-0.5, 0.5])
 #         plt.tight_layout()
-#         plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_{tstep:03d}.png")
+#         plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_diffusivity_{tstep:03d}.png")
 #         plt.close()
