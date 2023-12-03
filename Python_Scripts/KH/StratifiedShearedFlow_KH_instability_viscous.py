@@ -168,7 +168,7 @@ if run_model:
             q.set_UVC(u['g'][::20,::20].T, v['g'][::20,::20].T)
             axis.set_title("Density t = %f" % solver.sim_time)
             fig.canvas.draw()
-            plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_diffusivity_{nt:03d}.png")
+            plt.savefig(f"./StratifiedShearedFlow_KH_instability_viscous_{nt:03d}.png")
             nt += 1
 
 
