@@ -110,11 +110,8 @@ initial_dt = 0.05*Lx/nx
 cfl = flow_tools.CFL(solver,initial_dt,safety=0.5,threshold=0.05)
 cfl.add_velocities(('u','v'))
 
-analysis = solver.evaluator.add_file_handler('analysis_tasks', sim_dt=0.1, max_writes=50)
+analysis = solver.evaluator.add_file_handler('analysis', sim_dt=0.1, max_writes=1000)
 analysis.add_task('rho')
-analysis.add_task('u')
-#analysis.add_task('0.5*(u**2+v**2)',name='KE',scales=(3/2,3/2))
-solver.evaluator.vars['Lx'] = Lx
 
 # Make plot of scalar field
 x = domain.grid(0,scales=domain.dealias)
