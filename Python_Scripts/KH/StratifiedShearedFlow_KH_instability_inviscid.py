@@ -1,12 +1,49 @@
+#!/usr/bin/env python
+'''
+@File    :  StratifiedShearedFlow_KH_instability_inviscid.py
+@Time    :  2023/12/03 12:56:13
+@Author  :  Daniel Argüeso
+@Version :  2.0
+@Contact :  d.argueso@uib.es
+@License :  (C)Copyright 2022, Daniel Argüeso
+@Project :  Master FAMA - Waves and Instability in Geophysical Fluids
+@Desc    :  Script to simulate the Kelvin-Helmholtz instability in a stratified sheared flow using dedalus
+'''
+
 import numpy as np
 from dedalus import public as de
 from dedalus.extras import flow_tools
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import h5py
 import time
-
 import logging
 
+def customize_plots():
+    mpl.style.use("seaborn-paper")
+    mpl.rcParams["font.size"] = 16
+    mpl.rcParams["font.weight"] = "demibold"
+    mpl.rcParams["axes.spines.left"] = True
+    mpl.rcParams["axes.spines.bottom"] = True
+    mpl.rcParams["axes.spines.right"] = False
+    mpl.rcParams["axes.spines.top"] = False
+    
+def adjust_spines2(ax, spines):
+    for loc, spine in ax.spines.items():
+        if loc in spines:
+            spine.set_position(("outward", 5))
+        else:
+            spine.set_color("none")
+    if "left" in spines:
+        ax.yaxis.set_ticks_position("left")
+    else:
+        ax.yaxis.set_ticks([])
+    if "bottom" in spines:
+        ax.xaxis.set_ticks_position("bottom")
+    else:
+        ax.xaxis.set_ticks([])
+        
+        
 
 run_model = True
 
@@ -100,9 +137,19 @@ if run_model:
     y = domain.grid(1, scales=domain.dealias)
     xm, ym = np.meshgrid(x, y)
     fig, axis = plt.subplots(figsize=(8, 5))
+    mpl.rcParams["axes.spines.left"] = False
+    mpl.rcParams["axes.spines.bottom"] = False
+    adjust_spines2(axis, [])
+    axis.spines["top"].set_color("none")
+    axis.spines["right"].set_color("none")
+    axis.spines["left"].set_color("none")
+    axis.spines["bottom"].set_linewidth(2)
     rho.set_scales(domain.dealias)
+    u.set_scales(domain.dealias)
+    v.set_scales(domain.dealias)
     p = axis.pcolormesh(xm, ym, rho["g"].T, cmap="RdBu_r")
-    axis.set_title("t = %f" % solver.sim_time)
+    q = axis.quiver(xm[::20,::20],ym[::20,::20], u['g'][::20,::20].T, v['g'][::20,::20].T)
+    axis.set_title("Density t = %f" % solver.sim_time)
     axis.set_xlim([0, 2.0])
     axis.set_ylim([-0.5, 0.5])
     logger.info("Starting loop")
@@ -115,7 +162,8 @@ if run_model:
         if solver.iteration % 10 == 0:
             # Update plot of scalar field
             p.set_array(rho["g"].T)
-            axis.set_title("t = %f" % solver.sim_time)
+            q.set_UVC(u['g'][::20,::20].T, v['g'][::20,::20].T)
+            axis.set_title("Density t = %f" % solver.sim_time)
             fig.canvas.draw()
             plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_{nt:03d}.png")
             nt += 1
