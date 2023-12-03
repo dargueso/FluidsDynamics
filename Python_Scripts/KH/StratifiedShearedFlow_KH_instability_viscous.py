@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 '''
-@File    :  StratifiedShearedFlow_KH_instability.py
-@Time    :  2022/12/17 15:39:15
+@File    :  StratifiedShearedFlow_KH_instability_viscous.py
+@Time    :  2023/12/03 10:28:28
 @Author  :  Daniel Argüeso
-@Version :  1.0
+@Version :  2.0
 @Contact :  d.argueso@uib.es
-@License :  (C)Copyright 2022, Daniel Argüeso
+@License :  (C)Copyright 2023, Daniel Argüeso
 @Project :  Master FAMA - Waves and Instability in Geophysical Fluids
 @Desc    :  Script to simulate the Kelvin-Helmholtz instability in a stratified sheared flow using dedalus
 '''
@@ -17,14 +17,12 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import h5py
 import time
+import logging
 
 def customize_plots():
-
     mpl.style.use("seaborn-paper")
-
     mpl.rcParams["font.size"] = 16
     mpl.rcParams["font.weight"] = "demibold"
-
     mpl.rcParams["axes.spines.left"] = True
     mpl.rcParams["axes.spines.bottom"] = True
     mpl.rcParams["axes.spines.right"] = False
@@ -40,144 +38,163 @@ def adjust_spines2(ax, spines):
         ax.yaxis.set_ticks_position("left")
     else:
         ax.yaxis.set_ticks([])
-
     if "bottom" in spines:
         ax.xaxis.set_ticks_position("bottom")
     else:
         ax.xaxis.set_ticks([])
+        
+        
 
-import logging
-root = logging.root
-for h in root.handlers:
-    h.setLevel("INFO")
-    
-logger = logging.getLogger(__name__)
-# Set problem domain
+run_model = True
 
-# Aspect ratio 2
-Lx, Ly = (2., 1.)
-nx, ny = (512, 256)
+if run_model:
+    root = logging.root
+    for h in root.handlers:
+        h.setLevel("INFO")
 
-# Create bases and domain
+    logger = logging.getLogger(__name__)
+    # Set problem domain
 
-x_basis = de.Fourier('x', nx, interval = (0,Lx), dealias =3/2)
-y_basis = de.Chebyshev('y', ny, interval=(-Ly/2, Ly/2), dealias=3/2)
-domain = de.Domain([x_basis,y_basis], grid_dtype=np.float64)
+    # Aspect ratio 2
+    Lx, Ly = (2.0, 1.0)
+    nx, ny = (1024, 512)
 
+    # Create bases and domain
 
-Reynolds = 2e4
+    x_basis = de.Fourier("x", nx, interval=(0, Lx), dealias=3 / 2)
+    y_basis = de.Chebyshev("y", ny, interval=(-Ly / 2, Ly / 2), dealias=3 / 2)
+    domain = de.Domain([x_basis, y_basis], grid_dtype=np.float64)
 
+    # Equations
 
-#Equations
+    problem = de.IVP(domain, variables=["p", "u", "uy", "v", "vy", "rho"])
 
+    problem.parameters["g"] = 9.81
+    problem.parameters['Re'] = 5e4
 
-problem = de.IVP(domain, variables = ['p','u','uy','v','vy','rho'])
+    problem.add_equation("dt(u) + dx(p) - 1/Re*(dx(dx(u)) + dy(uy)) = - u*dx(u) - v*dy(u)")
+    problem.add_equation("dt(v) + dy(p) - 1/Re*(dx(dx(v)) + dy(vy)) + g*rho = -u*dx(v) - v*vy")
+    problem.add_equation("dx(u) + vy = 0")
+    problem.add_equation("dt(rho) = -u*dx(rho) - v*dy(rho)")    
+    problem.add_equation("vy - dy(v) = 0") 
+    problem.add_equation("uy - dy(u) = 0")
 
-problem.parameters['Re'] = Reynolds
+    # Boundary conditions
+    problem.add_bc("left(u) = 1.0")
+    problem.add_bc("right(u) = -1.0")
+    problem.add_bc("left(v) = 0")
+    problem.add_bc("right(v) = 0", condition="(nx != 0)")
+    problem.add_bc("integ(p,'y') = 0", condition="(nx == 0)")
 
-problem.parameters['g'] = 9.81
+    # Timestepping
 
-problem.add_equation("dt(u) + dx(p) - 1/Re*(dx(dx(u)) + dy(uy)) = - u*dx(u) - v*dy(u)")
-problem.add_equation("dt(v) + dy(p) - 1/Re*(dx(dx(v)) + dy(vy)) + g*rho = -u*dx(v) - v*vy")
-problem.add_equation("dx(u) + vy = 0")
-problem.add_equation("dt(rho) = -u*dx(rho) - v*dy(rho)")
-problem.add_equation("vy - dy(v) = 0")
-problem.add_equation("uy - dy(u) = 0")
+    ts = de.timesteppers.RK443
 
-# Boundary conditions
+    # Initial value problem
 
+    solver = problem.build_solver(ts)
 
-problem.add_bc("left(u) = 1.0")
-problem.add_bc("right(u) = -1.0")
-problem.add_bc("left(v) = 0")
-problem.add_bc("right(v) = 0", condition="(nx != 0)")
-problem.add_bc("integ(p,'y') = 0", condition="(nx == 0)")
+    x = domain.grid(0)
+    y = domain.grid(1)
+    u = solver.state["u"]
+    v = solver.state["v"]
+    vy = solver.state["vy"]
+    p = solver.state["p"]
+    rho = solver.state["rho"]
 
+    a = 0.02
+    amp = -0.2
+    sigma = 0.2
+    flow = -1.0
+    N = 4
+    u["g"] = flow * np.tanh(4*y / a)
+    rho["g"] = amp * np.tanh(3*y / a)
+    v["g"] = amp * np.exp(-y**2 / sigma**2) * np.sin(N * np.pi * x / Lx)
 
-#Timestepping
+    solver.stop_sim_time = 10.01
+    solver.stop_wall_time = np.inf
+    solver.stop_iteration = np.inf
 
-ts = de.timesteppers.RK443
+    initial_dt = 0.2 * Lx / nx
+    # cfl = flow_tools.CFL(
+    #         solver,
+    #         initial_dt=initial_dt,
+    #         cadence=10,
+    #         safety=0.8,
+    #         max_change=1.5,
+    #         min_change=0.5,
+    #         max_dt=10 * initial_dt,
+    #         threshold=0.05,
+    #     )
+    cfl = flow_tools.CFL(solver, initial_dt, safety=0.8, threshold=0.05)
+    cfl.add_velocities(("u", "v"))
 
-#Initial value problem
-
-solver =  problem.build_solver(ts)
-
-x = domain.grid(0)
-y = domain.grid(1)
-u = solver.state['u']
-uy = solver.state['uy']
-v = solver.state['v']
-vy = solver.state['vy']
-p = solver.state['p']
-rho = solver.state['rho']
-
-
-
-a = 0.02
-amp = -0.2
-sigma = 0.2
-flow = -1.0
-u['g'] = flow*np.tanh(y/a)
-rho['g'] = -0.1*np.tanh(y/a)
-v['g'] = amp*np.exp(-y**2/sigma**2)*np.sin(4*np.pi*x/Lx)
-
-solver.stop_sim_time = 10.01
-solver.stop_wall_time = np.inf
-solver.stop_iteration = np.inf
-
-initial_dt = 0.1*Lx/nx
-cfl = flow_tools.CFL(solver,initial_dt,safety=0.5,threshold=0.05)
-cfl.add_velocities(('u','v'))
-
-analysis = solver.evaluator.add_file_handler('analysis_tasks', sim_dt=0.1, max_writes=50)
-analysis.add_task('rho')
-analysis.add_task('u')
-analysis.add_task('0.5*(u**2+v**2)',name='KE',scales=(3/2,3/2))
-solver.evaluator.vars['Lx'] = Lx
-
-# Make plot of scalar field
-x = domain.grid(0,scales=domain.dealias)
-y = domain.grid(1,scales=domain.dealias)
-xm, ym = np.meshgrid(x,y)
-fig, axis = plt.subplots(figsize=(8,5))
-mpl.rcParams["axes.spines.left"] = False
-mpl.rcParams["axes.spines.bottom"] = False
-adjust_spines2(axis, [])
-axis.spines["top"].set_color("none")
-axis.spines["right"].set_color("none")
-axis.spines["left"].set_color("none")
-axis.spines["bottom"].set_linewidth(2)
-rho.set_scales(domain.dealias)
-#u.set_scales(domain.dealias)
-#v.set_scales(domain.dealias)
-p = axis.pcolormesh(xm, ym, rho['g'].T, cmap='RdYlBu')
-#q = axis.quiver(xm[::10,::10],ym[::10,::10], u['g'][::10,::10].T, v['g'][::10,::10].T)
-#axis.set_title('t = %f' %solver.sim_time)
-axis.set_title('Density')
-axis.set_xlim([0,2.])
-axis.set_ylim([-0.5,0.5])
-
-logger.info('Starting loop')
-start_time = time.time()
-nt=0
-while solver.ok:
-    dt = cfl.compute_dt()
-    solver.step(dt)
-    if solver.iteration % 10 == 0:
-        # Update plot of scalar field
-        p.set_array(rho['g'].T)
-        #q.set_UVC(u['g'][::10,::10].T, v['g'][::10,::10].T)
-        #axis.set_title('t = %f' %solver.sim_time)
-        axis.set_title('Density')
-        fig.canvas.draw()
-        plt.savefig(f'./KH_instability_dedalus_v2_{nt:03d}_stratified_viscous.png')
-        nt+=1
-
+    analysis = solver.evaluator.add_file_handler(
+        "analysis", sim_dt=0.1, max_writes=10000
+    )
+    analysis.add_task("rho")
+    analysis.add_task("u")
+    analysis.add_task("v")
+    # Make plot of scalar field
+    x = domain.grid(0, scales=domain.dealias)
+    y = domain.grid(1, scales=domain.dealias)
+    xm, ym = np.meshgrid(x, y)
+    fig, axis = plt.subplots(figsize=(8, 5))
+    mpl.rcParams["axes.spines.left"] = False
+    mpl.rcParams["axes.spines.bottom"] = False
+    adjust_spines2(axis, [])
+    axis.spines["top"].set_color("none")
+    axis.spines["right"].set_color("none")
+    axis.spines["left"].set_color("none")
+    axis.spines["bottom"].set_linewidth(2)
+    rho.set_scales(domain.dealias)
+    u.set_scales(domain.dealias)
+    v.set_scales(domain.dealias)
+    p = axis.pcolormesh(xm, ym, rho["g"].T, cmap="RdBu_r")
+    q = axis.quiver(xm[::20,::20],ym[::20,::20], u['g'][::20,::20].T, v['g'][::20,::20].T)
+    axis.set_title("Density t = %f" % solver.sim_time)
+    axis.set_xlim([0, 2.0])
+    axis.set_ylim([-0.5, 0.5])
+    logger.info("Starting loop")
+    start_time = time.time()
+    nt = 0
+    while solver.ok:
+        dt = cfl.compute_dt()
+        solver.step(dt)
+        print(solver.iteration)
+        if solver.iteration % 10 == 0:
+            # Update plot of scalar field
+            p.set_array(rho["g"].T)
+            q.set_UVC(u['g'][::20,::20].T, v['g'][::20,::20].T)
+            axis.set_title("Density t = %f" % solver.sim_time)
+            fig.canvas.draw()
+            plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_diffusivity_{nt:03d}.png")
+            nt += 1
 
 
+    end_time = time.time()
 
-end_time = time.time()
+    # Print statistics
+    logger.info("Run time: %f" % (end_time - start_time))
+    logger.info("Iterations: %i" % solver.iteration)
 
-# Print statistics
-logger.info('Run time: %f' %(end_time-start_time))
-logger.info('Iterations: %i' %solver.iteration)
+
+# with h5py.File("analysis/analysis_s1/analysis_s1_p0.h5", mode="r") as file:
+#     rho = file["tasks"]["rho"]
+#     u = file["tasks"]["u"]
+#     v = file["tasks"]["v"]
+#     t = rho.dims[0]["sim_time"]
+#     x = rho.dims[1][0]
+#     y = rho.dims[2][0]
+#     # Plot data
+
+#     for tstep in range(len(t)):
+#         print(tstep)
+#         fig, axis = plt.subplots(figsize=(8, 5))
+#         p = axis.pcolormesh(x, y, rho[tstep, :, :].T, cmap="RdBu")
+#         plt.quiver(x[::10], y[::10], u[tstep, ::10, ::10].T, v[tstep, ::10, ::10].T)
+#         axis.set_xlim([0, 2.0])
+#         axis.set_ylim([-0.5, 0.5])
+#         plt.tight_layout()
+#         plt.savefig(f"./StratifiedShearedFlow_KH_instability_inviscid_diffusivity_{tstep:03d}.png")
+#         plt.close()
