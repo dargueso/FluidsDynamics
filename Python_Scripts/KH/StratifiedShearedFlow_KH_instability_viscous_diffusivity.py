@@ -70,7 +70,7 @@ if run_model:
     problem = de.IVP(domain, variables=["p", "u", "uy", "v", "vy", "rho", "rhoy"])
 
     problem.parameters["g"] = 9.81
-    problem.parameters['Re'] = e4
+    problem.parameters['Re'] = 5e4
     problem.parameters['Sc'] = 1e2  # Schmidt number
     problem.parameters['Pr'] = 1e2 # Prandtl number
 
