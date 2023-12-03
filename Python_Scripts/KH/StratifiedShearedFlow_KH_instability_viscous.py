@@ -97,6 +97,7 @@ if run_model:
     x = domain.grid(0)
     y = domain.grid(1)
     u = solver.state["u"]
+    uy = solver.state['uy']
     v = solver.state["v"]
     vy = solver.state["vy"]
     p = solver.state["p"]
