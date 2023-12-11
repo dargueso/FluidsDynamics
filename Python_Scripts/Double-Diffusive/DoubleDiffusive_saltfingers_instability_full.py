@@ -106,7 +106,6 @@ gshape = domain.dist.grid_layout.global_shape(scales=1)
 slices = domain.dist.grid_layout.slices(scales=1)
 rand = np.random.RandomState(seed=42)
 noise = rand.standard_normal(gshape)[slices]
-noise2 = rand.standard_normal(gshape)[slices]
 
 a = 0.02
 u["g"] = 0
