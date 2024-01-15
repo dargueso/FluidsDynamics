@@ -21,22 +21,23 @@ import h5py
 import time
 
 import logging
+
 root = logging.root
 for h in root.handlers:
     h.setLevel("INFO")
-    
+
 logger = logging.getLogger(__name__)
 # Set problem domain
 
 # Aspect ratio 2
-Lx, Ly = (1., 1.)
-nx, ny = (512, 512)
+Lx, Ly = (1., 2.)
+nx, ny = (512, 1024)
 
 # Create bases and domain
 
-x_basis = de.Fourier('x', nx, interval = (0,Lx), dealias =3/2)
-y_basis = de.Chebyshev('y', ny, interval=(-Ly/2, Ly/2), dealias=3/2)
-domain = de.Domain([x_basis,y_basis], grid_dtype=np.float64)
+x_basis = de.Fourier("x", nx, interval=(0, Lx), dealias=3 / 2)
+y_basis = de.Chebyshev("y", ny, interval=(-Ly / 2, Ly / 2), dealias=3 / 2)
+domain = de.Domain([x_basis, y_basis], grid_dtype=np.float64)
 
 
 nu = 1e-2
@@ -46,7 +47,7 @@ Kt = 1e-2
 Ks = 1e-4
 g = 9.81
 
-#Equations
+# Equations
 
 problem = de.IVP(domain, variables = ['p','u','uy','v','vy','rho','T','Ty','S','Sy'])
 
@@ -60,15 +61,14 @@ problem.parameters['beta'] = beta
 
 problem.add_equation("dx(u) + vy = 0")
 problem.add_equation("dt(u) + dx(p) - nu*(dx(dx(u)) + dy(uy)) = - u*dx(u) - v*uy")
-problem.add_equation("dt(v) + dy(p) - nu*(dx(dx(v)) - dy(vy))  = - g*rho - u*dx(v) - v*vy")
+problem.add_equation("dt(v) + dy(p) - nu*(dx(dx(v)) - dy(vy)) = - u*dx(v) - v*vy - g*rho")
 problem.add_equation("rho = beta*S-alpha*T")
-problem.add_equation("dt(T) - Kt*(dx(dx(T)) + dy(Ty)) = -u*dx(T) - v*Ty")
-problem.add_equation("dt(S) - Ks*(dx(dx(S)) + dy(Sy)) = -u*dx(S) - v*Sy")
+problem.add_equation("dt(T) - Kt*(dx(dx(T)) + dy(Ty)) = - u*dx(T) - v*Ty")
+problem.add_equation("dt(S) - Ks*(dx(dx(S)) + dy(Sy)) = - u*dx(S) - v*Sy")
 problem.add_equation("vy - dy(v) = 0")
 problem.add_equation("uy - dy(u) = 0")
 problem.add_equation("Ty - dy(T) = 0")
 problem.add_equation("Sy  - dy(S) = 0")
-
 
 
 # Boundary conditions
@@ -84,16 +84,14 @@ problem.add_bc("left(Sy) = 0")
 problem.add_bc("right(Sy) = 0")
 
 
-
-
-#Timestepping
+# Timestepping
 
 ts = de.timesteppers.RK443
 
-#Initial value problem
+# Initial value problem
 
 solver = problem.build_solver(ts)
-solver.stop_sim_time = 1000.1
+solver.stop_sim_time = 6000.1
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 
@@ -112,9 +110,6 @@ gshape = domain.dist.grid_layout.global_shape(scales=1)
 slices = domain.dist.grid_layout.slices(scales=1)
 rand = np.random.RandomState(seed=42)
 noise = rand.standard_normal(gshape)[slices]
-noise1 = rand.standard_normal(gshape)[slices]
-noise2 = rand.standard_normal(gshape)[slices]
-
 
 a = 0.02
 u['g'] = 0
@@ -122,6 +117,7 @@ v['g'] = noise/40
 T['g'] = 10*np.tanh(4*y/a)
 S['g'] = -10*np.tanh(4*y/a)
 rho['g'] = beta*S['g']-alpha*T['g']
+
 
 xloc = 128
 Tloc = T['g'][xloc,:]
@@ -146,9 +142,9 @@ analysis.add_task('v')
 solver.evaluator.vars['Lx'] = Lx
 
 # Make plot of scalar field
-x = domain.grid(0,scales=domain.dealias)
-y = domain.grid(1,scales=domain.dealias)
-xm, ym = np.meshgrid(x,y)
+x = domain.grid(0, scales=domain.dealias)
+y = domain.grid(1, scales=domain.dealias)
+xm, ym = np.meshgrid(x, y)
 
 T.set_scales(domain.dealias)
 S.set_scales(domain.dealias)
@@ -179,7 +175,6 @@ start_time = time.time()
 nt=1
 while solver.ok:
     dt = cfl.compute_dt()
-    #dt = 0.05*Lx/nx
     solver.step(dt)
     
     if solver.iteration % 10 == 0:
@@ -218,5 +213,5 @@ while solver.ok:
 end_time = time.time()
 
 # Print statistics
-logger.info('Run time: %f' %(end_time-start_time))
-logger.info('Iterations: %i' %solver.iteration)
+logger.info("Run time: %f" % (end_time - start_time))
+logger.info("Iterations: %i" % solver.iteration)
