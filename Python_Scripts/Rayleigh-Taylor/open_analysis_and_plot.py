@@ -21,7 +21,6 @@ with h5py.File("analysis/analysis_s1/analysis_s1_p0.h5", mode="r") as file:
     x = rho.dims[1][0]
     y = rho.dims[2][0]
 
-    import pdb; pdb.set_trace()  # fmt: skip
     for tstep in range(len(t)):
         plt.figure(figsize=(15, 5), dpi=100)
         ct = plt.pcolormesh(
